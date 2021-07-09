@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "bb-code-jam"
+version = "0.1.0"
+description = "The Beatific Bulldogs' submission to the Python Discord Code Jam of Summer 2021."
+authors = ["Artemis <artemis@artemisdev.xyz>", "georgemunyoro <georgemunyoro.me>", "spitfire-hash", "x7a", "Zeliktric", "Kafros"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.dev-dependencies]
+# Base tools
+flake8 = "~=3.7"
+isort = "~=5.9"
+pre-commit = "~=2.13.0"
+poethepoet = "^0.10.0"
+# Flake8 plugins
+flake8-annotations = "~=2.0"
+flake8-bandit = "~=2.1"
+flake8-docstrings = "~=1.5"
+flake8-isort = "~=4.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
