@@ -34,16 +34,20 @@ This is the Beatific Bulldogs' submission to the Python Discord Code Jam of Summ
 
 ## Commands
 
- - TODO: Run the code
+ - Run the app
+
+   ```shell
+   $ poe main
+   ```
 
  - Automatically order imports
 
    ```shell
-   $ isort .
+   $ poe fix
    ```
 
  - Lint the code
 
    ```shell
-   $ flake8 .
+   $ poe lint
    ```
