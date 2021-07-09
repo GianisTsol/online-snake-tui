@@ -1,4 +1,4 @@
 """Main file for project."""
 
 if __name__ == '__main__':
-    pass  # do main stuff
+    pass  # TODO: Run the app.
