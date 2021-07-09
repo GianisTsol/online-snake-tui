@@ -20,6 +20,11 @@ flake8-bandit = "~=2.1"
 flake8-docstrings = "~=1.5"
 flake8-isort = "~=4.0"
 
+[tool.poe.tasks]
+main = "python -m src"
+lint = "flake8 ."
+fix = "isort ."
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
