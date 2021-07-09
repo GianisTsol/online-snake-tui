@@ -28,6 +28,7 @@ repos:
         types: [python]
         require_serial: true
       - id: lock
+        name: Poetry Lock
         entry: poetry lock
         language: system
         types: [python]
