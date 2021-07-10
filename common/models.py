@@ -1,5 +1,5 @@
 """Pydantic models for game data."""
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Union, List
 
 import pydantic
 
@@ -55,5 +55,5 @@ class Game(pydantic.BaseModel):
     """All the data for a game as shared with clients."""
 
     meta: ServerInfo
-    players: list[Player]
-    entities: list[Entity]
+    players: List[Player]
+    entities: List[Entity]
