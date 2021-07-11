@@ -1,5 +1,5 @@
 """Pydantic models for game data."""
-from typing import Literal, Optional, Union, List
+from typing import List, Literal, Optional, Union
 
 import pydantic
 

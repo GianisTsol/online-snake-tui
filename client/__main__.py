@@ -1,7 +1,9 @@
 """Entrypoint for the TUI client."""
 import time
-from .level import Window
+
 from common import models
+
+from .level import Window
 
 FPS = 15
 
@@ -18,7 +20,8 @@ left = (-1, 0)
 right = (1, 0)
 
 
-def add_segment(i):
+def add_segment():
+    """Add segments to the snek."""
     # Function to add segments to the snake, TODO: make apple
     curr_index = len(segments)
     segments.append(
@@ -32,7 +35,8 @@ def add_segment(i):
                             ))
 
 
-def on_key_press(key):
+def on_key_press(key: str):
+    """Handle directions from key presses."""
     global direction
     key = str(key).replace("KEY_", "").lower()  # get keys at more usable format
     if key == "up" and direction != down:
@@ -44,13 +48,9 @@ def on_key_press(key):
     if key == "left" and direction != right:
         direction = left
 
-    if key == "esc":
-        # Stop listener
-        return False
-        exit(0)
 
-
-def draw(win):
+def draw(win: Window):
+    """Draw snake."""
     global segments
     global direction
     head = segments[0]
@@ -71,6 +71,7 @@ def draw(win):
 
 
 def move():
+    """Move the snake. Needs to be called each frame."""
     global segments
     global direction
     head = segments[0]
@@ -86,7 +87,7 @@ def move():
 if __name__ == '__main__':
 
     for i in range(0, snek_segments):  # create initial segments of snake
-        add_segment(i)
+        add_segment()
 
     window = Window()
 
