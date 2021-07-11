@@ -1,108 +1,53 @@
 """Entrypoint for the TUI client."""
-import time
+from blessed import Terminal
 
-from common import models
-
+from .game import start_game
 from .level import Window
 
-FPS = 15
-
-direction = (1, 0)  # start direction
-
-snek_segments = 10  # Starting segments
-segments = []  # list for the snakes segments
-
-# directions #
-
-up = (0, -1)
-down = (0, 1)
-left = (-1, 0)
-right = (1, 0)
+sel = 1
 
 
-def add_segment():
-    """Add segments to the snek."""
-    # Function to add segments to the snake, TODO: make apple
-    curr_index = len(segments)
-    segments.append(
-        models.SnakeSegment(id=curr_index,
-                            x=1 + curr_index,
-                            y=5,
-                            type='snake_segment',
-                            player=0,
-                            before=curr_index - 1,
-                            after=curr_index + 1
-                            ))
+def display_menu(term: Terminal, menu: list, sel: int):
+    """Display the menu."""
+    print(term.home + term.clear, end='')
+    print(term.move_xy(round(term.width / 2), round(term.height / 2)))
+    for i in menu:
+        if menu.index(i) == sel - 1:
+            print(term.bold_red_reverse + i[0] + term.normal)
+        else:
+            print(term.red + i[0] + term.normal)
 
 
-def on_key_press(key: str):
-    """Handle directions from key presses."""
-    global direction
+def on_key_press(key: str, term: Terminal, menu: list):
+    """Handle key presses."""
+    global sel
     key = str(key).replace("KEY_", "").lower()  # get keys at more usable format
-    if key == "up" and direction != down:
-        direction = up
-    if key == "down" and direction != up:
-        direction = down
-    if key == "right" and direction != left:
-        direction = right
-    if key == "left" and direction != right:
-        direction = left
+    if key == "down":
+        if sel < len(menu):
+            sel += 1
+    elif key == "up":
+        if sel > 1:
+            sel -= 1
+    elif key == "enter":
+        menu[sel][1]()
+    if key != "":
+        display_menu(term, menu, sel)
 
 
-def draw(win: Window):
-    """Draw snake."""
-    global segments
-    global direction
-    head = segments[0]
-    for i in segments[::-1]:
-        if i.id > 0:  # Check if not head
-            print(win.term.home
-                  + win.term.move_xy(i.x, i.y)
-                  + win.term.green
-                  + u'\u2588'
-                  # + str(i.id)  # print segment id, for debug
-                  + win.term.home)
-    print(win.term.home
-          + win.term.move_xy(head.x, head.y)
-          + win.term.green
-          + u'\u2588'
-          # + str(i.id)
-          + win.term.home)
-
-
-def move():
-    """Move the snake. Needs to be called each frame."""
-    global segments
-    global direction
-    head = segments[0]
-    for i in segments[::-1]:
-        if i.id > 0:  # Check if not head
-            i.x = segments[i.before].x
-            i.y = segments[i.before].y
-
-    head.x += direction[0]
-    head.y += direction[1]
-
+# Menu options
+menu = [
+    ["Start Offline", start_game],
+    ["Online Lobby", start_game],
+    ["Custom", start_game],
+    ["Exit", exit],
+]
 
 if __name__ == '__main__':
-
-    for i in range(0, snek_segments):  # create initial segments of snake
-        add_segment()
-
     window = Window()
-
-    current_time = last_frame_time = time.time()
-    while True:  # Game loop
-
-        # Calculations needed for maintaining stable FPS
-        sleep_time = 1. / FPS - (current_time - last_frame_time)
-        if sleep_time > 0:
-            time.sleep(sleep_time)
-
-        # sTART GAME LOOP FOR MOVEMENT
+    print(window.term.home + window.term.clear, end='')
+    while True:
         with window.term.cbreak(), window.term.hidden_cursor():  # input
-            on_key_press(window.term.inkey(timeout=0).name)
-
-        window.redraw()
-        draw(window)
-        move()
+            on_key_press(
+                window.term.inkey(timeout=1).name,
+                window.term,
+                menu)

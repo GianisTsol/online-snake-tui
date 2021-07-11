@@ -15,7 +15,7 @@ class Window:
         self.width, self.height = os.get_terminal_size()
         self.BORDER_COLOR = self.term.bright_green
 
-    def redraw(self):
+    def draw_border(self):
         """TODO: Docstring."""
         print(self.term.home + self.term.clear, end='')  # Clear the screen
 
