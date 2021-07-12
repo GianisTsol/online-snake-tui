@@ -16,13 +16,16 @@ class GameController:
     def __init__(
             self,
             online: bool = False,
-            direction: tuple[int, int] = logic.RIGHT):
+            direction: tuple[int, int] = (1, 0)):
         """Set up the game."""
         self.online = online
         self.window = Window(os.get_terminal_size())
         self.term = self.window.term
         self.direction = direction
         self.segments = []
+        self.score = 0
+        self.lose_msg = f"You died with: {self.score} score. pathetic."
+
         # Create the initial snake segments.
         for _ in range(logic.STARTING_SNAKE_SEGMENTS):
             logic.add_segment(self.segments)
@@ -31,15 +34,25 @@ class GameController:
 
     def draw(self):
         """Draw the snake on the window."""
-        for segment in self.segments:
+        for i in self.segments:
             print(
                 self.term.home
-                + self.term.move_xy(segment.x, segment.y)
+                + self.term.move_xy(i.x, i.y)
                 + self.window.SNAKE_COLOR
                 + BLOCK_CHAR
                 + self.term.normal
                 + self.term.home
             )
+
+    def show_death_screen(self):
+        """Show when player loses."""
+        x = self.term.width // 2
+        y = self.term.height // 2
+        # calculate center
+        x = x - len(self.lose_msg) // 2
+        print(end=self.term.home + self.term.clear)
+        color = self.term.red
+        print(self.term.move_xy(x, y) + color + self.lose_msg + self.term.normal)
 
     def run_game_loop(self):
         """Run the game update loop."""
@@ -63,3 +76,11 @@ class GameController:
             self.draw()
             # Move the snake.
             logic.move(self.direction, self.segments)
+
+            # check for collisions
+            if (logic.has_collided_with_self(self.segments)
+                    or logic.has_collided_with_wall(self.window.width,
+                                                    self.window.height,
+                                                    self.segments)):
+                self.show_death_screen()
+                break
