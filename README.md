@@ -34,10 +34,16 @@ This is the Beatific Bulldogs' submission to the Python Discord Code Jam of Summ
 
 ## Commands
 
- - Run the app
+ - Run the client
 
    ```shell
    $ poe main
+   ```
+
+ - Run the server
+
+   ```shell
+   $ poe server
    ```
 
  - Automatically order imports

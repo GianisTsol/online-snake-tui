@@ -8,6 +8,8 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.9"
 pydantic = "~=1.8"
+blessed = "^1.18.1"
+msgpack = "^1.0.2"
 
 [tool.poetry.dev-dependencies]
 # Base tools
@@ -23,6 +25,7 @@ flake8-isort = "~=4.0"
 
 [tool.poe.tasks]
 main = "python -m client"
+server = "python -m server"
 lint = "flake8 ."
 fix = "isort ."
 
