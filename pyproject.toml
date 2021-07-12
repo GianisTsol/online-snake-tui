@@ -25,6 +25,7 @@ flake8-isort = "~=4.0"
 
 [tool.poe.tasks]
 main = "python -m client"
+server = "python -m server"
 lint = "flake8 ."
 fix = "isort ."
 

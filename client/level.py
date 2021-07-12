@@ -1,6 +1,4 @@
 """Models responsible for client side game run."""
-import os
-
 from blessed import Terminal
 
 
@@ -9,10 +7,10 @@ class Window:
 
     CHARS = ['┌', '─', '┐', '│', '└', '┘']
 
-    def __init__(self):
+    def __init__(self, size: tuple):
         """TODO: Docstring."""
         self.term = Terminal()
-        self.width, self.height = os.get_terminal_size()
+        self.width, self.height = size
         self.BORDER_COLOR = self.term.bright_green
 
     def draw_border(self):

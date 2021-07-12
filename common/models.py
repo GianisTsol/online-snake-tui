@@ -44,6 +44,7 @@ class SnakeSegment(BaseEntity):
 
     type: Literal['snake_segment']
     player: int                        # References Player.id.
+    is_head: bool
     before: Optional[int]              # References SnakeSegment.id.
     after: Optional[int]               # References SnakeSegment.id.
 

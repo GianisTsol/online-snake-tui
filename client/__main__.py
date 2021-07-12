@@ -1,4 +1,6 @@
 """Entrypoint for the TUI client."""
+import os
+
 from blessed import Terminal
 
 from .game import start_game
@@ -43,7 +45,7 @@ menu = [
 ]
 
 if __name__ == '__main__':
-    window = Window()
+    window = Window(os.get_terminal_size())
     print(window.term.home + window.term.clear, end='')
     while True:
         with window.term.cbreak(), window.term.hidden_cursor():  # input
