@@ -9,6 +9,7 @@ license = "MIT"
 python = "^3.9"
 pydantic = "~=1.8"
 blessed = "^1.18.1"
+msgpack = "^1.0.2"
 
 [tool.poetry.dev-dependencies]
 # Base tools
