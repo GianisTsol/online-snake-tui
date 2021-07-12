@@ -38,13 +38,15 @@ def change_direction(
         new: str, curr_direction: tuple[int, int]) -> tuple[int, int]:
     """Handle directions from new presses."""
     direction = curr_direction
+
+    # New direction can't be opposite to the current one.
     if new == 'up' and curr_direction != DOWN:
         direction = UP
-    if new == 'down' and curr_direction != UP:
+    elif new == 'down' and curr_direction != UP:
         direction = DOWN
-    if new == 'right' and curr_direction != LEFT:
+    elif new == 'right' and curr_direction != LEFT:
         direction = RIGHT
-    if new == 'left' and curr_direction != RIGHT:
+    elif new == 'left' and curr_direction != RIGHT:
         direction = LEFT
 
     return direction
