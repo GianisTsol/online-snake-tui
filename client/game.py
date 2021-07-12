@@ -159,4 +159,7 @@ class GameController:
                                                     self.window.height,
                                                     self.segments)):
                 self.show_death_screen()
-                break
+                # wait for key press to return to main menu
+                with self.term.cbreak():
+                    self.term.inkey()
+                    return

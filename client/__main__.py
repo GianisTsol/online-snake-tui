@@ -51,6 +51,7 @@ class Menu:
             self.draw()
         elif key == 'enter':
             self.OPTIONS[self.selection_index][1]()
+            self.draw()
 
     def event_loop(self):
         """Wait for keypresses."""
