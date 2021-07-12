@@ -1,4 +1,6 @@
 """Models responsible for client side game run."""
+import random
+
 from blessed import Terminal
 
 
@@ -19,6 +21,10 @@ class Window:
         self.term = Terminal()
         self.width, self.height = size
         self.BORDER_COLOR = self.term.bright_green
+
+        self.SNAKE_COLORS = [self.term.red, self.term.green, self.term.yellow,
+                             self.term.blue, self.term.magenta, self.term.cyan]
+        self.SNAKE_COLOR = random.choice(self.SNAKE_COLORS)
 
     def _draw_border_row(self, start: str, middle: str, end: str):
         """Draw one line of the border around the screen."""

@@ -35,8 +35,9 @@ class GameController:
             print(
                 self.term.home
                 + self.term.move_xy(i.x, i.y)
-                + self.term.green
+                + self.window.SNAKE_COLOR
                 + BLOCK_CHAR
+                + self.term.normal
                 + self.term.home
             )
 
