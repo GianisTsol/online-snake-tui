@@ -11,7 +11,7 @@ class Connection(Thread):
 
     def __init__(self):
         """Initialize connection class."""
-        super(Connection, self)
+        super().__init__()
         self.terminate_flag = threading.Event()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.settimeout(10)
@@ -36,9 +36,11 @@ class Connection(Thread):
 
     def run(self):
         """Thread to recieve data."""
+        # Iterating an Unpacker waits for and yields each complete msgpack
+        # object.
+        reader = iter(msgpack.Unpacker(self.sock, raw=False))
         while not self.terminate_flag.is_set():
             try:
-                rec = self.sock.recv(1024)  # recieve data from the connecton
-                self.newest = msgpack.unpackb(rec, raw=False)  # unpack the data
-            except(socket.timeout):
+                self.newest = next(reader)
+            except socket.timeout:
                 pass  # ignore socket timeouts, the connection shouldnt stop

@@ -6,59 +6,59 @@ from common import logic
 
 from .level import Window
 
+BLOCK_CHAR = '█'
 FPS = 15
 
-segments = []  # list for the snakes segments
 
-direction = (1, 0)  # start direction
+class GameController:
+    """The game mainloop."""
 
+    def __init__(
+            self,
+            online: bool = False,
+            direction: tuple[int, int] = (1, 0)):
+        """Set up the game."""
+        self.online = online
+        self.window = Window(os.get_terminal_size())
+        self.term = self.window.term
+        self.direction = direction
+        self.segments = []
+        # Create the initial snake segments.
+        for _ in range(logic.STARTING_SNAKE_SEGMENTS):
+            logic.add_segment(self.segments)
+        with self.term.hidden_cursor():
+            self.run_game_loop()
 
-def draw(win: Window):
-    """Draw snake."""
-    head = segments[0]
-    for i in segments[::-1]:
-        if i.id > 0:  # Check if not head
-            print(win.term.home
-                  + win.term.move_xy(i.x, i.y)
-                  + win.term.green
-                  + u'\u2588'
-                  # + str(i.id)  # print segment id, for debug
-                  + win.term.home)
-    print(win.term.home
-          + win.term.move_xy(head.x, head.y)
-          + win.term.green
-          + u'\u2588'
-          # + str(i.id)
-          + win.term.home)
-
-
-def start_game(online: bool = False):
-    """Start the game, itialize snake."""
-    global direction
-    global segments
-    for i in range(0, logic.snek_segments):  # create initial segments of snake
-        logic.add_segment(segments)
-
-    window = Window(os.get_terminal_size())
-
-    current_time = last_frame_time = time.time()
-    while True:  # Game loop
-
-        # Calculations needed for maintaining stable FPS
-        sleep_time = 1. / FPS - (current_time - last_frame_time)
-        if sleep_time > 0:
-            time.sleep(sleep_time)
-
-        # sTART GAME LOOP FOR MOVEMENT
-        with window.term.cbreak(), window.term.hidden_cursor():  # input
-            direction = logic.change_direction(
-                str(
-                    window.term.inkey(timeout=0).name
-                )
-                .replace("KEY_", "").lower(),
-                direction
+    def draw(self):
+        """Draw the snake on the window."""
+        for i in self.segments:
+            print(
+                self.term.home
+                + self.term.move_xy(i.x, i.y)
+                + self.term.green
+                + BLOCK_CHAR
+                + self.term.home
             )
 
-        window.draw_border()
-        draw(window)
-        segments = logic.move(direction, segments)
+    def run_game_loop(self):
+        """Run the game update loop."""
+        last_frame_time = current_time = time.time()
+        while True:
+            # Calculations needed for maintaining stable FPS
+            sleep_time = 1 / FPS - (current_time - last_frame_time)
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+
+            # Change direction if there is input.
+            with self.term.cbreak():
+                if key := self.term.inkey(timeout=0).name:
+                    self.direction = logic.change_direction(
+                        key.removeprefix('KEY_').lower(),
+                        self.direction
+                    )
+
+            # Render the screen.
+            self.window.draw_border()
+            self.draw()
+            # Move the snake.
+            logic.move(self.direction, self.segments)

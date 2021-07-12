@@ -3,53 +3,64 @@ import os
 
 from blessed import Terminal
 
-from .game import start_game
+from .game import GameController
 from .level import Window
 
-sel = 1
 
+class Menu:
+    """The main menu."""
 
-def display_menu(term: Terminal, menu: list, sel: int):
-    """Display the menu."""
-    print(term.home + term.clear, end='')
-    print(term.move_xy(round(term.width / 2), round(term.height / 2)))
-    for i in menu:
-        if menu.index(i) == sel - 1:
-            print(term.bold_red_reverse + i[0] + term.normal)
-        else:
-            print(term.red + i[0] + term.normal)
+    OPTIONS = [
+        ['Start Offline', GameController],
+        ['Online Lobby', lambda: GameController(online=True)],
+        ['Custom', GameController],
+        ['Exit', exit],
+    ]
 
+    def __init__(self, term: Terminal):
+        """Set up the menu."""
+        self.term = term
+        self.selection_index = 0
+        self.draw()
+        self.event_loop()
 
-def on_key_press(key: str, term: Terminal, menu: list):
-    """Handle key presses."""
-    global sel
-    key = str(key).replace("KEY_", "").lower()  # get keys at more usable format
-    if key == "down":
-        if sel < len(menu):
-            sel += 1
-    elif key == "up":
-        if sel > 1:
-            sel -= 1
-    elif key == "enter":
-        menu[sel][1]()
-    if key != "":
-        display_menu(term, menu, sel)
+    def draw(self):
+        """Render the menu to the terminal."""
+        base_x = self.term.width // 2
+        base_y = (self.term.height - len(self.OPTIONS)) // 2
+        print(end=self.term.home + self.term.clear)
+        self.term.move_xy
+        for index, (label, _action) in enumerate(self.OPTIONS):
+            x = base_x - len(label) // 2
+            y = base_y + index
+            if index == self.selection_index:
+                style = self.term.bold_red_reverse
+            else:
+                style = self.term.red
+            print(self.term.move_xy(x, y) + style + label + self.term.normal)
 
+    def on_key_press(self, key: str):
+        """Handle a key being pressed."""
+        if key == 'down':
+            self.selection_index += 1
+            self.selection_index %= len(self.OPTIONS)
+            self.draw()
+        elif key == 'up':
+            self.selection_index -= 1
+            self.selection_index %= len(self.OPTIONS)
+            self.draw()
+        elif key == 'enter':
+            self.OPTIONS[self.selection_index][1]()
 
-# Menu options
-menu = [
-    ["Start Offline", start_game],
-    ["Online Lobby", start_game],
-    ["Custom", start_game],
-    ["Exit", exit],
-]
+    def event_loop(self):
+        """Wait for keypresses."""
+        while True:
+            with self.term.cbreak(), self.term.hidden_cursor():
+                key = window.term.inkey(timeout=1).name
+                if key:
+                    self.on_key_press(key.removeprefix('KEY_').lower())
+
 
 if __name__ == '__main__':
     window = Window(os.get_terminal_size())
-    print(window.term.home + window.term.clear, end='')
-    while True:
-        with window.term.cbreak(), window.term.hidden_cursor():  # input
-            on_key_press(
-                window.term.inkey(timeout=1).name,
-                window.term,
-                menu)
+    Menu(window.term)

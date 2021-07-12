@@ -1,24 +1,43 @@
 """Entrypoint for the server."""
+import logging
 import socket
 import threading
 import time
 from threading import Thread
+from typing import Any
 
 import msgpack
 
 from common import logic, models
 
+SERVER_NAME = 'SnekBox'
+GAME_VERSION = 0
+BOX_WIDTH = 128
+BOX_HEIGHT = 32
+BOX_TICKRATE = 15
+MAX_PLAYERS = 5
 
-class player(Thread, models.Player):
-    """Class fo each client."""
+logger = logging.getLogger('snake.server')
+logging.basicConfig(level=logging.INFO)
 
-    def __init__(self, conn: socket.SocketIO, host: str):
-        """Initialize layer class."""
-        super(player, self).__init__()
 
+class Player(Thread):
+    """Class for each client."""
+
+    def __init__(
+            self,
+            conn: socket.socket,
+            addr: tuple[str, int],
+            model: models.Player):
+        """Set up the client."""
+        super().__init__()
+        self.segments = []
+        for _ in range(0, logic.STARTING_SNAKE_SEGMENTS):
+            logic.add_segment(self.segments)
+        self.player_model = model
         self.terminate_flag = threading.Event()
         self.conn = conn
-        self.host = host
+        self.addr = addr    # Host, port.
         self.score = 0
 
     def send(self, data: dict):
@@ -26,89 +45,104 @@ class player(Thread, models.Player):
         s = msgpack.pack(data, use_bin_type=True)  # pack the data
         self.conn.send(s)
 
-    def handler(self, data: dict):
+    def handler(self, data: dict[str, Any]):
         """Handle different types of events from client."""
-        if "nick" in data:
-            self.name = data['nick']
-        elif "event" in data:
+        if 'nick' in data:
+            self.player_model.name = data['nick']
+        elif 'event' in data:
             pass
-            # event = data["event"]
-            # TODO: add game mechanics stuff
-
-    def to_dict(self) -> dict:
-        """Return game data as dict."""
-        return {"name": self.name, "score": self.score}
+            # event = data['event']
+            # TODO: Allow the player to move.
 
     def stop(self):
         """Stop thread."""
         self.terminate_flag.set()
 
     def run(self):
-        """Entrypoint for self.start() ."""
+        """Listen for events."""
+        # Iterating an Unpacker waits for and yields each complete msgpack
+        # object.
+        reader = iter(msgpack.Unpacker(self.sock, raw=False))
         while not self.terminate_flag.is_set():
-            rec = self.conn.recv(1024)
-            data = msgpack.unpackb(rec, raw=False)
-            self.handler(data)
+            try:
+                self.handler(next(reader))
+            except socket.timeout:
+                pass  # ignore socket timeouts, the connection shouldnt stop
 
 
-class game(Thread, models.Game, models.ServerInfo):
-    """Game or mach filed with player."""
+class Game(Thread):
+    """Game or match filled with players."""
 
     def __init__(self):
         """Initialize game class."""
-        super(game, self).__init__()
-        self.segments = []
+        super().__init__()
+        self.info = models.ServerInfo(
+            name=SERVER_NAME,
+            version=GAME_VERSION,
+            width=BOX_WIDTH,
+            height=BOX_HEIGHT
+        )
+        self.players = []
+        # TODO: Populate and update apples.
         self.apples = []
-        self.tickrate = 15
-        # Game setitngs
-        self.maxplayers = 5
-        self.full = False
+        self.tickrate = BOX_TICKRATE
+        self.terminate_flag = threading.Event()
 
-    def add_player(self, player: player):
+    @property
+    def full(self) -> bool:
+        """Check if the game is full."""
+        return len(self.players) >= MAX_PLAYERS
+
+    def add_player(self, player: Player):
         """Add a player to the current game."""
         self.players.append(player)
-        for i in range(0, logic.snek_segments):
-            self.segments = logic.add_segment(self.segments)
-
-        if len(self.players) == self.maxplayers:
-            self.full = True
 
     def stop(self):
         """Stop thread."""
         self.terminate_flag.set()
 
+    @property
+    def game_model(self) -> models.Game:
+        """Collate game data in to a data model."""
+        # Collate players and entities.
+        player_models = []
+        entities = []
+        for player in self.players:
+            player_models.append(player.player_model)
+            entities.extend(player.segments)
+        entities.extend(self.apples)
+        # Create the model.
+        return models.Game(
+            players=player_models,
+            entities=entities,
+            meta=self.info,
+        )
+
     def run(self):
-        """Man thread for each game maintaining tick rate."""
+        """Run the game mainloop."""
         current_time = last_frame_time = time.time()
         while True:
             # Calculations needed for maintaining stable FPS
-            sleep_time = 1. / self.tickrate - (current_time - last_frame_time)
+            sleep_time = 1 / self.tickrate - (current_time - last_frame_time)
             if sleep_time > 0:
                 time.sleep(sleep_time)
 
-            # game loop
-            self.segments = logic.move(self.segments)
+            # Update snake segments
+            for player in self.players:
+                logic.move(player.segments)
 
-            # send data to players
-
-            playerdata = []
-
-            for i in self.players:
-                playerdata.append(i.to_dict)
-
-            gamedata = {"players": playerdata,
-                        "segments": self.segments
-                        }
-            for i in self.players:
-                i.send(gamedata)
+            # Send players game data
+            game_data = self.game_model.dict()
+            for player in self.players:
+                player.send(game_data)
 
 
-class server(Thread):
-    """docstring for server."""
+class Server(Thread):
+    """Game server process."""
 
-    def __init__(self, host: str = '', port: int = 65444):
-        """Init server clss."""
-        super(server, self).__init__()
+    def __init__(self, host: str = '127.0.0.1', port: int = 65444):
+        """Set up the game server."""
+        super().__init__()
         self.terminate_flag = threading.Event()
 
         self.host = host
@@ -122,46 +156,48 @@ class server(Thread):
 
         self.clients = []
         self.games = []
+        self.next_player_id = 1
+
+    def on_connect(self, conn: socket.socket, addr: tuple[str, int]):
+        """Handle a new connection to the server."""
+        host, port = addr
+        logger.info(f'New client connected: {host}:{port}.')
+        client = Player(conn, addr, models.Player(
+            id=self.next_player_id,
+            name='Unamed Player',
+            score=0
+        ))
+        self.next_player_id += 1
+        self.clients.append(client)
+        client.start()
+
+        for game in self.games:
+            if not game.full:
+                game.add_player(client)
+                return
+        # No game was found.
+        new_game = game()
+        self.games.append(new_game)
+        new_game.add_player(client)
+        new_game.start()
 
     def run(self):
-        """Entrypoint for server.start() ."""
-        print("started server")
+        """Run the server and wait for connections."""
+        logger.info(f'Server listing on {self.host}:{self.port}.')
         while not self.terminate_flag.is_set():
             try:
                 conn, addr = self.socket.accept()
-                print('Connected: ', addr)
-                client = player(conn, addr)  # Initialize new player
-
-                self.clients.append(client)
-
-                client.start()  # start the client thread.
-
-                found = False  # has a game been found
-                for game in self.games:
-                    if not game.full:
-                        game.add_player(client)  # add player to the game
-                        found = True
-                        break
-                if not found:
-                    newgame = game()
-                    self.games.append(newgame)
-                    newgame.add_player(client)
-                    newgame.start()
-
+                self.on_connect(conn, addr)
             except socket.timeout:
                 pass
             else:
                 self.terminate_flag.set()
 
-        # stop everything
-        for i in self.clients:
-            i.stop()
-            i.join()
-
-        for i in self.games:
-            i.stop()
-            i.join()
+        # Stop everything.
+        for thread in (*self.clients, *self.games):
+            thread.stop()
+            thread.join()
 
 
-new_server = server()
-new_server.start()
+server = Server()
+server.start()
