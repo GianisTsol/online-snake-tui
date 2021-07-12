@@ -84,6 +84,27 @@ def move():
     head.y += direction[1]
 
 
+def has_collided_with_self() -> bool:
+    """Return True if the snake has collided with itself."""
+    global segments
+    for i in segments[1:]:
+        if (segments[0].x, segments[0].y) == (i.x, i.y):
+            return True
+    return False
+
+
+def has_collided_with_wall(win: Window) -> bool:
+    """Return True if the snake has collided with a wall."""
+    global segments
+    head = segments[0]
+    return (
+        head.x <= 0
+        or head.x >= win.width - 1
+        or head.y <= 0
+        or head.y >= win.height - 1
+    )
+
+
 def start_game():
     """Start the game, itialize snake."""
     for i in range(0, snek_segments):  # create initial segments of snake
