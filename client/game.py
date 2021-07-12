@@ -16,7 +16,7 @@ class GameController:
     def __init__(
             self,
             online: bool = False,
-            direction: tuple[int, int] = (1, 0)):
+            direction: tuple[int, int] = logic.RIGHT):
         """Set up the game."""
         self.online = online
         self.window = Window(os.get_terminal_size())
@@ -31,10 +31,10 @@ class GameController:
 
     def draw(self):
         """Draw the snake on the window."""
-        for i in self.segments:
+        for segment in self.segments:
             print(
                 self.term.home
-                + self.term.move_xy(i.x, i.y)
+                + self.term.move_xy(segment.x, segment.y)
                 + self.window.SNAKE_COLOR
                 + BLOCK_CHAR
                 + self.term.normal

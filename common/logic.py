@@ -25,7 +25,7 @@ def add_segment(segments: list, head: bool = False):
         SnakeSegment(
             index=curr_index,
             # TODO: Find a good position (based on previous segments if any).
-            x=1 + curr_index,
+            x=STARTING_SNAKE_SEGMENTS - curr_index,
             y=5,
             # TODO: Accept a player to attach the snake to.
             player=0,
