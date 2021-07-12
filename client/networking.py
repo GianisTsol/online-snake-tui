@@ -36,7 +36,7 @@ class Connection(Thread):
 
     def run(self):
         """Thread to recieve data."""
-        while self.terminate_flag.is_set():
+        while not self.terminate_flag.is_set():
             try:
                 rec = self.sock.recv(1024)  # recieve data from the connecton
                 self.newest = msgpack.unpackb(rec, raw=False)  # unpack the data
