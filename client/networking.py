@@ -5,6 +5,8 @@ from threading import Thread
 
 import msgpack
 
+from common import models
+
 
 class Connection(Thread):
     """Used to connect to server and recieve or send game data."""
@@ -16,6 +18,8 @@ class Connection(Thread):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.settimeout(10)
         self.newest = None
+        self.serverinfo = None
+        self.ready = False
 
     def connect(self, host: str, port: int):
         """Call to connect to server."""
@@ -38,6 +42,16 @@ class Connection(Thread):
         """Get the newest recieved data."""
         return self.newest
 
+    def get_server_info(self):
+        """Set the serer metadata."""
+        info = self.newest['meta']
+        self.serverinfo = models.ServerInfo(
+            name=info['name'],
+            version=info['version'],
+            width=info['width'],
+            height=info['height'],
+        )
+
     def run(self):
         """Thread to recieve data."""
         unpacker = msgpack.Unpacker(raw=False)
@@ -48,22 +62,10 @@ class Connection(Thread):
                     unpacker.feed(r)
                     for i in unpacker:
                         self.newest = i
+                        self.get_server_info()
+                        self.ready = True
             except Exception as e:
                 if e is socket.timeout:
                     pass  # ignore socket timeouts, the connection shouldnt stop
                 else:
                     self.terminate_flag.set()
-
-
-if __name__ == '__main__':
-    con = Connection()
-    host = input("Server ip:")
-    try:
-        port = int(input("Port (default: 65444):"))
-    except ValueError:
-        port = 65444
-    con.connect(host, port)
-    con.start()  # After connecting, start recieving
-    while True:
-        data = con.get_newest()
-        print(data)

@@ -25,10 +25,8 @@ class Player(Thread):
     """Class for each client."""
 
     def __init__(
-            self,
-            conn: socket.socket,
-            addr: tuple[str, int],
-            model: models.Player):
+        self, conn: socket.socket, addr: tuple[str, int], model: models.Player
+    ):
         """Set up the client."""
         super().__init__()
         self.segments = []
@@ -37,14 +35,17 @@ class Player(Thread):
         self.player_model = model
         self.terminate_flag = threading.Event()
         self.conn = conn
-        self.addr = addr    # Host, port.
+        self.addr = addr  # Host, port.
         self.score = 0
         self.direction = logic.RIGHT
 
     def send(self, data: dict):
         """Pack and send data to the player."""
-        packed = msgpack.packb(data, use_bin_type=True)  # pack the data
-        self.conn.sendall(packed)
+        try:
+            packed = msgpack.packb(data, use_bin_type=True)  # pack the data
+            self.conn.sendall(packed)
+        except (BrokenPipeError, IOError):
+            pass
 
     def handler(self, data: dict[str, Any]):
         """Handle different types of events from client."""
@@ -94,7 +95,7 @@ class Game(Thread):
             name=SERVER_NAME,
             version=GAME_VERSION,
             width=BOX_WIDTH,
-            height=BOX_HEIGHT
+            height=BOX_HEIGHT,
         )
         self.players = []
         # TODO: Populate and update apples.
@@ -145,20 +146,15 @@ class Game(Thread):
             for player in self.players:
                 logic.move(player.direction, player.segments)
                 if logic.has_collided_with_wall(
-                    BOX_WIDTH,
-                    BOX_HEIGHT,
-                    player.segments) or logic.has_collided_with_self(
-                        player.segments):
+                    BOX_WIDTH, BOX_HEIGHT, player.segments
+                ) or logic.has_collided_with_self(player.segments):
                     player.kill()
                     del self.players[self.players.index(player)]
 
             # Send players game data
             game_data = self.game_model.dict()
-            try:
-                for player in self.players:
-                    player.send(game_data)
-            except (BrokenPipeError, IOError, socket.timeout):
-                pass
+            for player in self.players:
+                player.send(game_data)
 
 
 class Server(Thread):
@@ -186,11 +182,11 @@ class Server(Thread):
         """Handle a new connection to the server."""
         host, port = addr
         logger.info(f'New client connected: {host}:{port}.')
-        client = Player(conn, addr, models.Player(
-            id=self.next_player_id,
-            name='Unamed Player',
-            score=0
-        ))
+        client = Player(
+            conn,
+            addr,
+            models.Player(id=self.next_player_id, name='Unamed Player', score=0),
+        )
         self.next_player_id += 1
         self.clients.append(client)
         client.start()
