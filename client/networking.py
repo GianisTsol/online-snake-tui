@@ -23,8 +23,12 @@ class Connection(Thread):
 
     def send(self, msg: dict):
         """Pack and send data."""
-        packed = msgpack.pack(msg, use_bin_type=True)  # pack the data
-        self.sock.send(packed)  # send data
+        packed = msgpack.packb(msg, use_bin_type=True)  # pack the data
+        self.sock.sendall(packed)  # send data
+
+    def send_event(self, type: str, data: any):
+        """Send event to server."""
+        self.send({"event": {"type": type, "data": data}})
 
     def stop(self):
         """Stop the thread."""
@@ -36,11 +40,30 @@ class Connection(Thread):
 
     def run(self):
         """Thread to recieve data."""
-        # Iterating an Unpacker waits for and yields each complete msgpack
-        # object.
-        reader = iter(msgpack.Unpacker(self.sock, raw=False))
+        unpacker = msgpack.Unpacker(raw=False)
         while not self.terminate_flag.is_set():
             try:
-                self.newest = next(reader)
-            except socket.timeout:
-                pass  # ignore socket timeouts, the connection shouldnt stop
+                r = self.sock.recv(1024)
+                if r:
+                    unpacker.feed(r)
+                    for i in unpacker:
+                        self.newest = i
+            except Exception as e:
+                if e is socket.timeout:
+                    pass  # ignore socket timeouts, the connection shouldnt stop
+                else:
+                    self.terminate_flag.set()
+
+
+if __name__ == '__main__':
+    con = Connection()
+    host = input("Server ip:")
+    try:
+        port = int(input("Port (default: 65444):"))
+    except ValueError:
+        port = 65444
+    con.connect(host, port)
+    con.start()  # After connecting, start recieving
+    while True:
+        data = con.get_newest()
+        print(data)

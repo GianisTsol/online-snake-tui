@@ -5,6 +5,7 @@ import time
 from common import logic
 
 from .level import Window
+from .networking import Connection
 
 BLOCK_CHAR = '█'
 FPS = 15
@@ -21,7 +22,9 @@ DEATH_VERDICTS = [
     (30, 'Sweet!'),
     (45, 'Amazing!!'),
     (50, 'Wow!!! What a game!'),
+    (69, 'Nice. Maybe not so pathetic after all.'),
     (100, 'The bestest of the best!!!'),
+    (120, 'Still pathetic lmao.')
 ]
 
 # N[orth]/E[ast]/S[outh]/[W]est indicates direction of segment to join on to.
@@ -64,11 +67,14 @@ class GameController:
         self.segments = []
         self.score = 0
 
-        # Create the initial snake segments.
-        for _ in range(logic.STARTING_SNAKE_SEGMENTS):
-            logic.add_segment(self.segments)
-        with self.term.hidden_cursor():
-            self.run_game_loop()
+        if online:
+            self.start_online()
+        else:
+            # Create the initial snake segments.
+            for _ in range(logic.STARTING_SNAKE_SEGMENTS):
+                logic.add_segment(self.segments)
+            with self.term.hidden_cursor():
+                self.run_game_loop()
 
     def direction_from_segment(
             self, from_segment_index: int, to_segment_index: int) -> str:
@@ -163,3 +169,58 @@ class GameController:
                 with self.term.cbreak():
                     self.term.inkey()
                     return
+
+    def start_online(self):
+        """Start the game in online mode."""
+        con = Connection()
+        host = input("Server ip:")
+        try:
+            port = int(input("Port (default: 65444):"))
+        except ValueError:
+            port = 65444
+        con.connect(host, port)
+        con.start()  # After connecting, start recieving
+
+        last_frame_time = current_time = time.time()
+        while True:
+            self.window.draw_border()
+            # Calculations needed for maintaining stable FPS
+            sleep_time = 1 / 15 - (current_time - last_frame_time)
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+
+            data = con.get_newest()
+            with self.term.cbreak():
+                if key := self.term.inkey(timeout=0).name:
+                    self.direction = logic.change_direction(
+                        key.removeprefix('KEY_').lower(),
+                        self.direction
+                    )
+                    con.send_event('dir', self.direction)
+
+            data = con.get_newest()
+            if data:
+                if 'event' in data:
+                    if data['event']['type'] == 'dead':
+                        self.show_death_screen()
+                        con.sock.close()
+                        con.stop()
+                        con.join()
+                        # wait for key press to return to main menu
+                        with self.term.cbreak():
+                            self.term.inkey()
+                            return
+
+                if 'entities' in data:
+                    entities = data['entities']
+                    for i in entities:
+                        type = i['type']
+                        if type == "snake_segment":
+                            print(
+                                self.term.home
+                                + self.term.move_xy(i['x'], i['y'])
+                                + self.window.SNAKE_COLOR
+                                + BLOCK_CHAR
+                                + self.term.normal
+                                + self.term.home
+                            )
