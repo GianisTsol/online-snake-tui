@@ -166,8 +166,7 @@ class Game(Thread):
                 time.sleep(sleep_time)
 
             # Update snake segments
-            for player in self.players:
-                logic.move(player.direction, player.segments)  # move players
+            for player in self.players:                logic.move(player.direction, player.segments)  # move players
 
                 # check for collisions
                 if logic.has_collided_with_wall(
