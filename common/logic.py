@@ -3,7 +3,9 @@
 This is used for calculationg position
 and other game mechanics.
 """
-from .models import SnakeSegment
+import random
+
+from .models import Apple, SnakeSegment
 
 STARTING_SNAKE_SEGMENTS = 10
 
@@ -41,13 +43,13 @@ def change_direction(
     direction = curr_direction
 
     # New direction can't be opposite to the current one.
-    if new == 'up' and curr_direction != DOWN:
+    if new == "up" and curr_direction != DOWN:
         direction = UP
-    elif new == 'down' and curr_direction != UP:
+    elif new == "down" and curr_direction != UP:
         direction = DOWN
-    elif new == 'right' and curr_direction != LEFT:
+    elif new == "right" and curr_direction != LEFT:
         direction = RIGHT
-    elif new == 'left' and curr_direction != RIGHT:
+    elif new == "left" and curr_direction != RIGHT:
         direction = LEFT
 
     return direction
@@ -66,6 +68,38 @@ def move(direction: tuple[int, int], segments: list[SnakeSegment]):
 
     head.x += direction[0]
     head.y += direction[1]
+
+
+def check_apple(segments: list, apple: Apple) -> bool:
+    """Check if player has eaten apple."""
+    if segments:
+        head = segments[0]
+        return (head.x, head.y) == (apple.x, apple.y)
+
+
+def create_apple(size: tuple[int, int], segments: list) -> Apple:
+    """Create apple object."""
+    while True:
+        coords = (
+            random.randrange(2, size[0] - 2),
+            random.randrange(2, size[1] - 2),
+        )
+        for i in segments:
+            if (i.x, i.y) == coords:
+                break
+        break
+    return Apple(x=coords[0], y=coords[1])
+
+
+def has_collided_with_others(
+    player: list[SnakeSegment], other: list[SnakeSegment]
+) -> bool:
+    """Return True if the snake has collided with other players."""
+    head = player[0]
+    for segment in other[1:]:
+        if (head.x, head.y) == (segment.x, segment.y):
+            return True
+    return False
 
 
 def has_collided_with_self(segments: list[SnakeSegment]) -> bool:

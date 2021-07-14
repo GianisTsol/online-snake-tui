@@ -35,13 +35,13 @@ class BaseEntity(pydantic.BaseModel):
 class Apple(BaseEntity):
     """An apple in the game."""
 
-    type: Literal['apple'] = 'apple'
+    type: Literal["apple"] = "apple"
 
 
 class SnakeSegment(BaseEntity):
     """One segment of a player's snake."""
 
-    type: Literal['snake_segment'] = 'snake_segment'
+    type: Literal["snake_segment"] = "snake_segment"
     player: int  # References Player.id.
     is_head: bool
     index: int
