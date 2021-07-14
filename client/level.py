@@ -22,16 +22,35 @@ class Window:
         self.width, self.height = size
         self.BORDER_COLOR = self.term.bright_green
 
-        self.SNAKE_COLORS = [self.term.red, self.term.green, self.term.yellow,
-                             self.term.blue, self.term.magenta, self.term.cyan]
+        self.SNAKE_COLORS = [
+            self.term.red,
+            self.term.green,
+            self.term.yellow,
+            self.term.blue,
+            self.term.magenta,
+            self.term.cyan,
+        ]
         self.SNAKE_COLOR = random.choice(self.SNAKE_COLORS)
+
+        self.player_colors = []
 
     def _draw_border_row(self, start: str, middle: str, end: str):
         """Draw one line of the border around the screen."""
         print(
-            self.BORDER_COLOR + start + middle * (self.width - 2) + end,
-            end=self.term.normal
+            self.BORDER_COLOR
+            + start
+            + middle * (self.width - 2)
+            + end
+            + self.term.normal
         )
+
+    def player_color(self, player: int) -> str:
+        """Get color for player id."""
+        if len(self.player_colors) > player:
+            self.player_colors.append(random.choice(self.SNAKE_COLORS))
+            return self.player_colors[player]
+        else:
+            return self.SNAKE_COLORS[player]
 
     def draw_border(self):
         """Draw the border around the edge of the screen."""
@@ -45,7 +64,7 @@ class Window:
             self._draw_border_row(
                 self.CHAR_NS + self.term.normal,
                 ' ',
-                self.BORDER_COLOR + self.CHAR_NS
+                self.BORDER_COLOR + self.CHAR_NS,
             )
 
         # Print the border footer

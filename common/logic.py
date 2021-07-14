@@ -35,7 +35,8 @@ def add_segment(segments: list, head: bool = False):
 
 
 def change_direction(
-        new: str, curr_direction: tuple[int, int]) -> tuple[int, int]:
+    new: str, curr_direction: tuple[int, int]
+) -> tuple[int, int]:
     """Handle directions from new presses."""
     direction = curr_direction
 
@@ -52,9 +53,7 @@ def change_direction(
     return direction
 
 
-def move(
-        direction: tuple[int, int],
-        segments: list[SnakeSegment]):
+def move(direction: tuple[int, int], segments: list[SnakeSegment]):
     """Move the snake.
 
     This should be called each frame.
@@ -79,12 +78,10 @@ def has_collided_with_self(segments: list[SnakeSegment]) -> bool:
 
 
 def has_collided_with_wall(
-        width: int, height: int, segments: list[SnakeSegment]) -> bool:
+    width: int, height: int, segments: list[SnakeSegment]
+) -> bool:
     """Return True if the snake has collided with a wall."""
     head = segments[0]
     return (
-        head.x <= 0
-        or head.x >= width - 1
-        or head.y <= 0
-        or head.y >= height - 1
+        head.x <= 0 or head.x >= width - 1 or head.y <= 0 or head.y >= height - 1
     )

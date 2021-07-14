@@ -5,6 +5,8 @@ from threading import Thread
 
 import msgpack
 
+from common import models
+
 
 class Connection(Thread):
     """Used to connect to server and recieve or send game data."""
@@ -16,6 +18,8 @@ class Connection(Thread):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.settimeout(10)
         self.newest = None
+        self.serverinfo = None
+        self.ready = False
 
     def connect(self, host: str, port: int):
         """Call to connect to server."""
@@ -23,8 +27,12 @@ class Connection(Thread):
 
     def send(self, msg: dict):
         """Pack and send data."""
-        packed = msgpack.pack(msg, use_bin_type=True)  # pack the data
-        self.sock.send(packed)  # send data
+        packed = msgpack.packb(msg, use_bin_type=True)  # pack the data
+        self.sock.sendall(packed)  # send data
+
+    def send_event(self, type: str, data: any):
+        """Send event to server."""
+        self.send({"event": {"type": type, "data": data}})
 
     def stop(self):
         """Stop the thread."""
@@ -34,13 +42,30 @@ class Connection(Thread):
         """Get the newest recieved data."""
         return self.newest
 
+    def get_server_info(self):
+        """Set the serer metadata."""
+        info = self.newest['meta']
+        self.serverinfo = models.ServerInfo(
+            name=info['name'],
+            version=info['version'],
+            width=info['width'],
+            height=info['height'],
+        )
+
     def run(self):
         """Thread to recieve data."""
-        # Iterating an Unpacker waits for and yields each complete msgpack
-        # object.
-        reader = iter(msgpack.Unpacker(self.sock, raw=False))
+        unpacker = msgpack.Unpacker(raw=False)
         while not self.terminate_flag.is_set():
             try:
-                self.newest = next(reader)
-            except socket.timeout:
-                pass  # ignore socket timeouts, the connection shouldnt stop
+                r = self.sock.recv(1024)
+                if r:
+                    unpacker.feed(r)
+                    for i in unpacker:
+                        self.newest = i
+                        self.get_server_info()
+                        self.ready = True
+            except Exception as e:
+                if e is socket.timeout:
+                    pass  # ignore socket timeouts, the connection shouldnt stop
+                else:
+                    self.terminate_flag.set()
