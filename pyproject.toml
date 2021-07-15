@@ -2,7 +2,7 @@
 name = "bb-code-jam"
 version = "0.1.0"
 description = "The Beatific Bulldogs' submission to the Python Discord Code Jam of Summer 2021."
-authors = ["Artemis <artemis@artemisdev.xyz>", "georgemunyoro <georgemunyoro.me>", "Murad <carlsonmu@gmail.com>", "x7a", "Zeliktric", "GianisTsol <giannisetsolakis@gmail.com>"]
+authors = ["Artemis <artemis@artemisdev.xyz>", "Murad <carlsonmu@gmail.com>", "georgemunyoro <georgemunyoro.me>", "x7a <58111040+x7a@users.noreply.github.com>", "GianisTsol <giannisetsolakis@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
