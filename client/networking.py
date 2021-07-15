@@ -44,12 +44,12 @@ class Connection(Thread):
 
     def get_server_info(self):
         """Set the serer metadata."""
-        info = self.newest['meta']
+        info = self.newest["meta"]
         self.serverinfo = models.ServerInfo(
-            name=info['name'],
-            version=info['version'],
-            width=info['width'],
-            height=info['height'],
+            name=info["name"],
+            version=info["version"],
+            width=info["width"],
+            height=info["height"],
         )
 
     def run(self):

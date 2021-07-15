@@ -10,14 +10,14 @@ import msgpack
 
 from common import logic, models
 
-SERVER_NAME = 'SnekBox'
+SERVER_NAME = "SnekBox"
 GAME_VERSION = 0
 BOX_WIDTH = 128
 BOX_HEIGHT = 32
 BOX_TICKRATE = 15
 MAX_PLAYERS = 5
 
-logger = logging.getLogger('snake.server')
+logger = logging.getLogger("snake.server")
 logging.basicConfig(level=logging.INFO)
 
 
@@ -25,11 +25,16 @@ class Player(Thread):
     """Class for each client."""
 
     def __init__(
-        self, conn: socket.socket, addr: tuple[str, int], model: models.Player
+        self,
+        conn: socket.socket,
+        addr: tuple[str, int],
+        model: models.Player,
     ):
         """Set up the client."""
         super().__init__()
         self.segments = []
+        self.game = None
+        self.server = None
         for _ in range(0, logic.STARTING_SNAKE_SEGMENTS):
             logic.add_segment(self.segments)
         self.player_model = model
@@ -49,23 +54,26 @@ class Player(Thread):
 
     def handler(self, data: dict[str, Any]):
         """Handle different types of events from client."""
-        if 'nick' in data:
-            self.player_model.name = data['nick']
-        elif 'event' in data:
-            event = data['event']
-            if event["type"] == 'dir':
+        if "event" in data:
+            event = data["event"]
+            if event["type"] == "nick":
+                self.player_model.name = event["data"]
+            if event["type"] == "dir":
                 self.direction = tuple(event["data"])
-                print('change dirction: ', self.direction)
 
     def kill(self):
         """Send player the msg to disconnect."""
         self.segments = []
-        self.send({'event': {'type': 'dead'}})
-        self.conn.close()
+        self.send({"event": {"type": "dead", "data": self.score}})
+        del self.game.players[self.game.players.index(self)]
+        del self.game.apples[0]
+        del self.server.clients[self.server.clients.index(self)]
+        self.stop()
 
     def stop(self):
         """Stop thread."""
         self.terminate_flag.set()
+        self.conn.close()
 
     def run(self):
         """Listen for events."""
@@ -77,7 +85,6 @@ class Player(Thread):
                     unpacker.feed(r)
                     for i in unpacker:
                         self.handler(i)
-                        print(i)
             except Exception as e:
                 if e is socket.timeout:
                     pass  # ignore socket timeouts, the connection shouldnt stop
@@ -97,9 +104,11 @@ class Game(Thread):
             width=BOX_WIDTH,
             height=BOX_HEIGHT,
         )
+        self.starting_apples = 2
+
         self.players = []
-        # TODO: Populate and update apples.
         self.apples = []
+        self.entities = []
         self.tickrate = BOX_TICKRATE
         self.terminate_flag = threading.Event()
 
@@ -111,6 +120,12 @@ class Game(Thread):
     def add_player(self, player: Player):
         """Add a player to the current game."""
         self.players.append(player)
+        player.game = self
+        self.apples.append(
+            logic.create_apple(
+                (self.info.width, self.info.height), self.entities
+            )
+        )
 
     def stop(self):
         """Stop thread."""
@@ -136,6 +151,14 @@ class Game(Thread):
     def run(self):
         """Run the game mainloop."""
         current_time = last_frame_time = time.time()
+
+        for i in range(1, self.starting_apples):
+            self.apples.append(
+                logic.create_apple(
+                    (self.info.width, self.info.height), self.entities
+                )
+            )  # create new apple
+
         while True:
             # Calculations needed for maintaining stable FPS
             sleep_time = 1 / self.tickrate - (current_time - last_frame_time)
@@ -144,12 +167,36 @@ class Game(Thread):
 
             # Update snake segments
             for player in self.players:
-                logic.move(player.direction, player.segments)
+                logic.move(player.direction, player.segments)  # move players
+
+                # check for collisions
                 if logic.has_collided_with_wall(
                     BOX_WIDTH, BOX_HEIGHT, player.segments
                 ) or logic.has_collided_with_self(player.segments):
                     player.kill()
-                    del self.players[self.players.index(player)]
+
+                # check if player has collided with other player
+                for other in self.players:
+                    if logic.has_collided_with_others(
+                        player.segments, other.segments
+                    ):
+                        player.kill()
+
+                # add al players to entities, used for apple checks
+                for player in self.players:
+                    self.entities.extend(player.segments)
+
+                for apple in self.apples:  # check if player eats apple
+                    if logic.check_apple(player.segments, apple):
+                        player.score += 1
+                        logic.add_segment(player.segments)
+                        del self.apples[self.apples.index(apple)]
+                        self.apples.append(
+                            logic.create_apple(
+                                (self.info.width, self.info.height),
+                                self.entities,
+                            )
+                        )  # create new apple
 
             # Send players game data
             game_data = self.game_model.dict()
@@ -160,7 +207,7 @@ class Game(Thread):
 class Server(Thread):
     """Game server process."""
 
-    def __init__(self, host: str = '127.0.0.1', port: int = 65444):
+    def __init__(self, host: str = "127.0.0.1", port: int = 65444):
         """Set up the game server."""
         super().__init__()
         self.terminate_flag = threading.Event()
@@ -181,12 +228,13 @@ class Server(Thread):
     def on_connect(self, conn: socket.socket, addr: tuple[str, int]):
         """Handle a new connection to the server."""
         host, port = addr
-        logger.info(f'New client connected: {host}:{port}.')
+        logger.info(f"New client connected: {host}:{port}.")
         client = Player(
             conn,
             addr,
-            models.Player(id=self.next_player_id, name='Unamed Player', score=0),
+            models.Player(id=self.next_player_id, name="Unamed Player", score=0),
         )
+        client.server = self
         self.next_player_id += 1
         self.clients.append(client)
         client.start()
@@ -203,7 +251,7 @@ class Server(Thread):
 
     def run(self):
         """Run the server and wait for connections."""
-        logger.info(f'Server listing on {self.host}:{self.port}.')
+        logger.info(f"Server listing on {self.host}:{self.port}.")
         while not self.terminate_flag.is_set():
             try:
                 conn, addr = self.socket.accept()
