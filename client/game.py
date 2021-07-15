@@ -53,33 +53,50 @@ SNAKE_TAIL_CHARS = {
 }
 
 
-class GameController:
+class Game:
     """The game mainloop."""
 
-    def __init__(
-        self,
-        online: bool = False,
-        name: str = "",
-        direction: tuple[int, int] = (1, 0),
-    ):
+    def __init__(self, win: Window):
+        """Game class base."""
+        self.window = win
+        self.term = Window.term
+
+    def get_death_message(self) -> str:
+        """Get the message to show when the player dies."""
+        for score, possible_verdict in DEATH_VERDICTS:
+            if score <= self.score:
+                verdict = possible_verdict
+        return f"You died with: {self.score} score. {verdict}"
+
+    def show_death_screen(self):
+        """Show when player dies."""
+        message = self.get_death_message()
+        # Calculate center.
+        x = self.term.width // 2 - len(message) // 2
+        y = self.term.height // 2
+        print(end=self.term.home + self.term.clear)
+        print(
+            self.term.move_xy(x, y) + self.term.red + message + self.term.normal
+        )
+
+
+class OfflineGame(Game):
+    """docstring for OfflineGame."""
+
+    def __init__(self):
         """Set up the game."""
-        self.online = online
         self.window = Window(os.get_terminal_size())
         self.term = self.window.term
-        self.direction = direction
+        self.direction = (1, 0)
         self.segments = []
-        self.name = name
         self.score = 0
         self.apple = None
 
-        if online:
-            self.start_online()
-        else:
-            # Create the initial snake segments.
-            for _ in range(logic.STARTING_SNAKE_SEGMENTS):
-                logic.add_segment(self.segments)
-            with self.term.hidden_cursor():
-                self.run_game_loop()
+        # Create the initial snake segments.
+        for _ in range(logic.STARTING_SNAKE_SEGMENTS):
+            logic.add_segment(self.segments)
+        with self.term.hidden_cursor():
+            self.run_game_loop()
 
     def direction_from_segment(
         self, from_segment_index: int, to_segment_index: int
@@ -126,24 +143,6 @@ class GameController:
             + self.term.home
         )
 
-    def get_death_message(self) -> str:
-        """Get the message to show when the player dies."""
-        for score, possible_verdict in DEATH_VERDICTS:
-            if score <= self.score:
-                verdict = possible_verdict
-        return f"You died with: {self.score} score. {verdict}"
-
-    def show_death_screen(self):
-        """Show when player dies."""
-        message = self.get_death_message()
-        # Calculate center.
-        x = self.term.width // 2 - len(message) // 2
-        y = self.term.height // 2
-        print(end=self.term.home + self.term.clear)
-        print(
-            self.term.move_xy(x, y) + self.term.red + message + self.term.normal
-        )
-
     def run_game_loop(self):
         """Run the game update loop."""
         last_frame_time = current_time = time.time()
@@ -184,26 +183,75 @@ class GameController:
                     self.term.inkey()
                     return
 
-    def start_online(self):
-        """Start the game in online mode."""
-        con = Connection()
-        host = input("Server ip:")
-        try:
-            port = int(input("Port (default: 65444):"))
-        except ValueError:
-            port = 65444
-        con.connect(host, port)
-        con.start()  # After connecting, start recieving
 
-        while not con.ready:
+class OnlineGame(Game):
+    """Online Game Mode controller."""
+
+    def __init__(self, host: str, port: int, name: str):
+        """Online Game class."""
+        self.con = Connection()
+        self.name = name
+        self.score = 0
+        self.alive = True
+        self.direction = (1, 0)
+        self.con.connect(host, port)
+        self.con.start()  # After connecting, start recieving
+
+        while not self.con.ready:
             pass  # Wait until we start getting data
 
-        self.window = Window((con.serverinfo.width, con.serverinfo.height))
+        self.start_online()
+
+    def draw(self, entities: dict):
+        """Draw all etities given."""
+        for i in entities:
+            type = i["type"]
+            if type == "snake_segment":
+                # TODO: add artemis' beautiful snake
+                print(
+                    self.term.home
+                    + self.term.move_xy(i["x"], i["y"])
+                    + self.window.player_color(i["player"])
+                    + BLOCK_CHAR
+                    + self.term.normal
+                    + self.term.home
+                )
+            if type == "apple":
+                print(
+                    self.term.home
+                    + self.term.move_xy(i["x"], i["y"])
+                    + self.term.red
+                    + BLOCK_CHAR
+                    + self.term.normal
+                    + self.term.home
+                )
+
+    def end_game(self):
+        """End game session."""
+        self.show_death_screen()
+        # stop the con thread
+        self.con.stop()
+        self.con.join()
+        self.alive = False
+
+    def event_handler(self, type: str, data: any):
+        """Server event handler."""
+        if type == "dead":
+            self.score = int(data)
+            self.end_game()
+
+    def start_online(self):
+        """Start the game in online mode."""
+        self.window = Window(
+            (self.con.serverinfo.width, self.con.serverinfo.height)
+        )
         self.term = self.window.term
 
         last_frame_time = current_time = time.time()
-        con.send_event("nick", self.name)
-        while True:
+
+        self.con.send_event("nick", self.name)  # send our name to server
+
+        while self.alive:
             # Calculations needed for maintaining stable FPS
             sleep_time = 1 / FPS - (current_time - last_frame_time)
             if sleep_time > 0:
@@ -215,51 +263,27 @@ class GameController:
                 if key := self.term.inkey(timeout=0).name:
                     self.direction = logic.change_direction(
                         key.removeprefix("KEY_").lower(), self.direction
-                    )
-                    con.send_event("dir", self.direction)
+                    )  # do key loic
+                    self.con.send_event(
+                        "dir", self.direction
+                    )  # send the direction
 
-            data = con.get_newest()
+            data = self.con.get_newest()
             if data:
                 # get players and draw scoreboard
                 if "players" in data:
-                    print(data["players"])
                     self.window.draw_scoreboard(data["players"])
 
                 # check fore server events
                 if "event" in data:
-                    if data["event"]["type"] == "dead":
-                        self.score = int(data["event"]["data"])
-                        con.sock.close()
-                        self.show_death_screen()
-                        # stop the con thread
-                        con.stop()
-                        con.join()
-                        # wait for key press to return to main menu
-                        with self.term.cbreak():
-                            self.term.inkey()
-                        return
+                    self.event_handler(
+                        data["event"]["type"], data["event"]["data"]
+                    )
 
                 if "entities" in data:
                     # Draw each entity sent to us
-                    entities = data["entities"]
-                    for i in entities:
-                        type = i["type"]
-                        if type == "snake_segment":
-                            # TODO: add artemis' beautiful snake
-                            print(
-                                self.term.home
-                                + self.term.move_xy(i["x"], i["y"])
-                                + self.window.player_color(i["player"])
-                                + BLOCK_CHAR
-                                + self.term.normal
-                                + self.term.home
-                            )
-                        if type == "apple":
-                            print(
-                                self.term.home
-                                + self.term.move_xy(i["x"], i["y"])
-                                + self.term.red
-                                + BLOCK_CHAR
-                                + self.term.normal
-                                + self.term.home
-                            )
+                    self.draw(data["entities"])
+
+        # wait for key press to return to main menu
+        with self.term.cbreak():
+            self.term.inkey()

@@ -1,9 +1,10 @@
 """Entrypoint for the TUI client."""
+import json
 import os
 
 from blessed import Terminal
 
-from .game import GameController
+from .game import OfflineGame, OnlineGame
 from .level import Window
 
 
@@ -15,37 +16,79 @@ class PlayerData:
         self.name = "Player69"
         self.window = Window(os.get_terminal_size())
         self.term = self.window.term
-        self.nick_input = "Name (8 chars max): "
+        self.savefile = "save.json"
+        self.savefile = os.path.join(
+            os.path.dirname(__file__), self.savefile
+        )  # get the absolute path of our file
+        self.nick_input = "Name (2-8 chars): "
+        self.load_class()
 
-    def change_nickname(self):
-        """Prompt for player to change their name."""
+    def load_class(self):
+        """Load previously entered user data."""
+        if not os.path.exists(self.savefile):
+            self.save_class()
+
+        with open(self.savefile, "r") as f:
+            data = json.load(f)
+            for key, value in data.items():
+                # set every dict key to an atribute of the class
+                setattr(self, key, value)  # self.key = value
+
+    def save_class(self):
+        """Save variables for future load."""
+        with open(self.savefile, "w") as f:
+            data = {"name": self.name}
+            json.dump(data, f)
+
+    def get_user_input(self, text: str, old_val: str = "") -> str:
+        """Get user input text."""
+        x = self.window.width // 2  # center of screen
+        y = self.window.height // 2  # center of screen
+        input = old_val
         print(end=self.term.home + self.term.clear)
-        x = self.window.width // 2
-        y = self.window.height // 2
-        print(self.term.move_xy(x, y) + self.term.red_bold + self.nick_input)
+        print(self.term.move_xy(x, y) + self.term.red_bold + text)
         while True:
             print(end=self.term.home + self.term.clear)
             print(
-                self.term.move_xy(x - len(self.name + self.nick_input) // 2, y)
+                self.term.move_xy(x - len(input + text) // 2, y)
                 + self.term.red_bold
-                + self.nick_input
+                + text
                 + self.term.blue
-                + self.name
+                + input
             )
             val = self.term.inkey()
             if val.name == "KEY_ENTER":
                 break
             elif val.name == "KEY_BACKSPACE":
-                self.name = self.name[:-1]
+                input = input[:-1]
             else:
-                self.name += val
-        if len(self.name) > 8:
+                input += val
+        return input
+
+    def change_nickname(self):
+        """Change player name."""
+        x = self.window.width // 2  # center of screen
+        y = self.window.height // 2  # center of screen
+        """Prompt for player to change their name."""
+        self.name = self.get_user_input(self.nick_input, self.name)
+        if len(self.name) > 8 or len(self.name) < 2:
             print(end=self.term.home + self.term.clear)
             print(self.term.move_xy(x, y) + self.term.red_bold + "INVALID")
             self.name = ""
             self.term.inkey()
             self.change_nickname()
         print(self.term.normal)
+        self.save_class()
+
+    def connect_to_game(self):
+        """Prompt server details."""
+        host = self.get_user_input("Server ip: ")
+        try:
+            port = int(self.get_user_input("Port (65444): "))
+        except ValueError:
+            port = 65444
+
+        OnlineGame(host, port, self.name)
 
 
 player = PlayerData()
@@ -55,10 +98,10 @@ class Menu:
     """The main menu."""
 
     OPTIONS = [
-        ["Start Offline", GameController],
-        ["Online Lobby", lambda: GameController(online=True, name=player.name)],
+        ["Start Offline", OfflineGame],
+        ["Connect to server", lambda: player.connect_to_game()],
         ["Change Nickname", player.change_nickname],
-        ["Custom", GameController],
+        ["Custom", OfflineGame],
         ["Exit", exit],
     ]
 
