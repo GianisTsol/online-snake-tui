@@ -196,7 +196,7 @@ class GameController:
         con.start()  # After connecting, start recieving
 
         while not con.ready:
-            pass
+            pass  # Wait until we start getting data
 
         self.window = Window((con.serverinfo.width, con.serverinfo.height))
         self.term = self.window.term
@@ -210,6 +210,7 @@ class GameController:
                 time.sleep(sleep_time)
 
             self.window.draw_border()
+            # Get key presses and send them as change direction events
             with self.term.cbreak():
                 if key := self.term.inkey(timeout=0).name:
                     self.direction = logic.change_direction(
@@ -219,15 +220,18 @@ class GameController:
 
             data = con.get_newest()
             if data:
+                # get players and draw scoreboard
                 if "players" in data:
                     print(data["players"])
                     self.window.draw_scoreboard(data["players"])
 
+                # check fore server events
                 if "event" in data:
                     if data["event"]["type"] == "dead":
                         self.score = int(data["event"]["data"])
                         con.sock.close()
                         self.show_death_screen()
+                        # stop the con thread
                         con.stop()
                         con.join()
                         # wait for key press to return to main menu
@@ -236,10 +240,12 @@ class GameController:
                         return
 
                 if "entities" in data:
+                    # Draw each entity sent to us
                     entities = data["entities"]
                     for i in entities:
                         type = i["type"]
                         if type == "snake_segment":
+                            # TODO: add artemis' beautiful snake
                             print(
                                 self.term.home
                                 + self.term.move_xy(i["x"], i["y"])

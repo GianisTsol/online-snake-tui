@@ -257,7 +257,7 @@ class Server(Thread):
                 conn, addr = self.socket.accept()
                 self.on_connect(conn, addr)
             except (BrokenPipeError, IOError, socket.timeout):
-                pass
+                pass  # meaningless errors, prevent crash
 
         # Stop everything.
         for thread in (*self.clients, *self.games):
