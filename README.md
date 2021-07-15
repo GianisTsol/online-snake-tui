@@ -4,6 +4,8 @@
 
 This is the Beatific Bulldogs' submission to the Python Discord Code Jam of Summer 2021.
 
+A snake game playable in the terminal. Includes offline mode, online mode (you can host your own game) and custom mode. The game is controlled using arrows.
+
 ## Installation
 
  1. [Install Python](https://python.org/downloads)
@@ -32,7 +34,7 @@ This is the Beatific Bulldogs' submission to the Python Discord Code Jam of Summ
     $ pre-commit install
     ```
 
-## Commands
+## Usage
 
  - Run the client
 
