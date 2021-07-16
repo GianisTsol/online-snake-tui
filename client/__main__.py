@@ -97,6 +97,12 @@ class InputManager:
             self.save_class()
         OnlineGame(self.host, self.port, self.name)
 
+    def reset_server(self):
+        """Reset server details."""
+        self.host = None
+        self.port = None
+        self.save_class()
+
     def start_server(self):
         """Input config params and start server."""
         name = self.get_user_input("Server Name: ", "SnekBox")
@@ -137,9 +143,10 @@ class Menu:
 
     OPTIONS = [
         ["Start Offline", OfflineGame],
-        ["Connect to server", lambda: inmger.connect_to_game()],
+        ["Connect to server", inmger.connect_to_game],
+        ["Reset Server Details", inmger.reset_server],
         ["Change Nickname", inmger.change_nickname],
-        ["Server", inmger.start_server],
+        ["Host A Server", inmger.start_server],
         ["Exit", exit],
     ]
 
@@ -155,6 +162,12 @@ class Menu:
         base_x = self.term.width // 2
         base_y = (self.term.height - len(self.OPTIONS)) // 2
         print(end=self.term.home + self.term.clear)
+        print(
+            self.term.move_xy(base_x - 2, base_y - 2)
+            + self.term.green_bold
+            + "SNEK"
+            + self.term.normal
+        )
         for index, (label, _action) in enumerate(self.OPTIONS):
             x = base_x - len(label) // 2
             y = base_y + index
