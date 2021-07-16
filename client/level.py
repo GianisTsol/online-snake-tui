@@ -1,4 +1,5 @@
 """Models responsible for client side game run."""
+import math
 import random
 
 from blessed import Terminal
@@ -90,7 +91,8 @@ class Window:
         for player in players:
             print(
                 self.term.move_xy(
-                    self.width + (max_len - len(player["name"])) // 2, 2
+                    self.width + math.floor((max_len - len(player["name"])) / 2),
+                    players.index(player) + 2,
                 )
                 + name
             )
