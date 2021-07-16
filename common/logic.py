@@ -16,7 +16,7 @@ LEFT = (-1, 0)
 RIGHT = (1, 0)
 
 
-def add_segment(segments: list, head: bool = False):
+def add_segment(segments: list, head: bool = False, id: int = 0):
     """Add a new segment to a list of segments."""
     if not (segments or head):
         # If there are no segments, it must be a head.
@@ -30,7 +30,7 @@ def add_segment(segments: list, head: bool = False):
             x=STARTING_SNAKE_SEGMENTS - curr_index,
             y=5,
             # TODO: Accept a player to attach the snake to.
-            player=0,
+            player=id,
             is_head=head,
         )
     )

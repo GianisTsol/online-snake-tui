@@ -29,7 +29,7 @@ class Player(Thread):
         self.game = None
         self.server = None
         for _ in range(0, logic.STARTING_SNAKE_SEGMENTS):
-            logic.add_segment(self.segments)
+            logic.add_segment(self.segments, self.model.id)
         self.player_model = model
         self.terminate_flag = threading.Event()
         self.conn = conn
