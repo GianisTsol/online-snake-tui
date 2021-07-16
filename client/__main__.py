@@ -99,16 +99,19 @@ class InputManager:
 
     def start_server(self):
         """Input config params and start server."""
+        name = self.get_user_input("Server Name: ", "SnekBox")
         server_port = int(self.get_user_input("Port (65444): ", str(65444)))
         server_y = self.get_user_input("Height: ", str(32))
         server_x = self.get_user_input("Width: ", str(128))
-        tick = self.get_user_input("Tickrate: ", str(15))
-        max = self.get_user_input("Max Players: ", str(5))
+        tick = int(self.get_user_input("Tickrate: ", str(15)))
+        max = int(self.get_user_input("Max Players: ", str(5)))
 
         print(end=self.term.home + self.term.clear)
         print("Starting server...")
         print("PRESS Q TO QUIT")
         config = {
+            "SERVER_NAME": name,
+            "GAME_VERSION": 0,
             "BOX_WIDTH": server_x,
             "BOX_HEIGHT": server_y,
             "TICKRATE": tick,

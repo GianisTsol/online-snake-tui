@@ -61,7 +61,7 @@ class Window:
         players = sorted(players, key=lambda x: x["score"])
         max_len = 1
         for i in players:
-            name = str(players.index(i)) + ". " + i["name"]
+            name = str(i['score']) + ": " + i["name"]
             if len(name) > max_len:
                 max_len = len(name)
 

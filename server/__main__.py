@@ -34,7 +34,6 @@ class Player(Thread):
         self.terminate_flag = threading.Event()
         self.conn = conn
         self.addr = addr  # Host, port.
-        self.score = 0
         self.direction = logic.RIGHT
 
     def send(self, data: dict):
@@ -57,7 +56,7 @@ class Player(Thread):
     def kill(self):
         """Send player the msg to disconnect."""
         self.segments = []
-        self.send({"event": {"type": "dead", "data": self.score}})
+        self.send({"event": {"type": "dead", "data": self.player_model.score}})
         del self.game.players[self.game.players.index(self)]
         del self.game.apples[0]
         del self.server.clients[self.server.clients.index(self)]
@@ -182,7 +181,7 @@ class Game(Thread):
 
                 for apple in self.apples:  # check if player eats apple
                     if logic.check_apple(player.segments, apple):
-                        player.score += 1
+                        player.player_model.score += 1
                         logic.add_segment(player.segments)
                         del self.apples[self.apples.index(apple)]
                         self.apples.append(
@@ -201,7 +200,7 @@ class Game(Thread):
 class Server(Thread):
     """Game server process."""
 
-    def __init__(self, config: dict, host: str = "127.0.0.1", port: int = 65444):
+    def __init__(self, config: dict, host: str = "", port: int = 65444):
         """Set up the game server."""
         super().__init__()
         self.terminate_flag = threading.Event()
