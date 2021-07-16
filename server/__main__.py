@@ -170,7 +170,7 @@ class Game(Thread):
 
                 # check for collisions
                 if logic.has_collided_with_wall(
-                    self.info.width - 1, self.info.height - 1, player.segments
+                    self.info.width, self.info.height, player.segments
                 ) or logic.has_collided_with_self(player.segments):
                     player.kill()
 
@@ -180,6 +180,11 @@ class Game(Thread):
                         player.segments, other.segments
                     ):
                         player.kill()
+                        other.player_model.score += player.player_model.score
+                        for i in range(1, other.player_model.score // 2):
+                            logic.add_segment(
+                                other.segments, id=other.player_model.id
+                            )
 
                 # add al players to entities, used for apple checks
                 self.entities.extend(player.segments)

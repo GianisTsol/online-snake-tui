@@ -118,6 +118,4 @@ def has_collided_with_wall(
 ) -> bool:
     """Return True if the snake has collided with a wall."""
     head = segments[0]
-    return (
-        head.x <= 0 or head.x >= width - 1 or head.y <= 0 or head.y >= height - 1
-    )
+    return head.x < 0 or head.x > width - 1 or head.y < 0 or head.y > height - 1
