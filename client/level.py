@@ -51,11 +51,9 @@ class Window:
 
     def player_color(self, player: int) -> str:
         """Get color for player id."""
-        if len(self.player_colors) > player:
+        while len(self.player_colors) <= player:
             self.player_colors.append(random.choice(self.SNAKE_COLORS))
-            return self.player_colors[player]
-        else:
-            return self.SNAKE_COLORS[player]
+        return self.player_colors[player]
 
     def draw_scoreboard(self, players: list):
         """Draw the scoreboard."""

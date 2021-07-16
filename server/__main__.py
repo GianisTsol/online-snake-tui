@@ -30,7 +30,7 @@ class Player(Thread):
         self.server = None
         self.player_model = model
         for _ in range(0, logic.STARTING_SNAKE_SEGMENTS):
-            logic.add_segment(self.segments, self.player_model.id)
+            logic.add_segment(self.segments, id=self.player_model.id)
         self.terminate_flag = threading.Event()
         self.conn = conn
         self.addr = addr  # Host, port.
@@ -187,7 +187,9 @@ class Game(Thread):
                 for apple in self.apples:  # check if player eats apple
                     if logic.check_apple(player.segments, apple):
                         player.player_model.score += 1
-                        logic.add_segment(player.segments)
+                        logic.add_segment(
+                            player.segments, id=player.player_model.id
+                        )
                         del self.apples[self.apples.index(apple)]
                         self.apples.append(
                             logic.create_apple(
