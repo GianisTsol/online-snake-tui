@@ -62,9 +62,9 @@ class Window:
         players = sorted(players, key=lambda x: x["score"])
         max_len = 1
         for i in players:
-            name = str(i["score"]) + ": " + i["name"]
-            if len(name) > max_len:
-                max_len = len(name)
+            i["name"] = str(i["score"]) + ": " + i["name"]
+            if len(i["name"]) > max_len:
+                max_len = len(i["name"])
 
         max_len += 2
         print(self.term.move_y(0))
@@ -94,7 +94,7 @@ class Window:
                     self.width + math.floor((max_len - len(player["name"])) / 2),
                     players.index(player) + 2,
                 )
-                + name
+                + player["name"]
             )
 
     def draw_border(self):
