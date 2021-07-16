@@ -48,10 +48,16 @@ class Player(Thread):
         """Handle different types of events from client."""
         if "event" in data:
             event = data["event"]
-            if event["type"] == "nick":
-                self.player_model.name = event["data"]
-            if event["type"] == "dir":
-                self.direction = tuple(event["data"])
+            data = event["data"]
+            type = event["type"]
+
+            if type == "nick":
+                if len(data) > 8:
+                    self.kill()  # nickname protection
+                else:
+                    self.player_model.name = data
+            if type == "dir":
+                self.direction = tuple(data)
 
     def kill(self):
         """Send player the msg to disconnect."""
