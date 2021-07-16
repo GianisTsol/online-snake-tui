@@ -9,9 +9,6 @@ from typing import Any
 import msgpack
 
 from common import logic, models
-from common.config import SnekConfig
-
-config = SnekConfig()
 
 logger = logging.getLogger("snake.server")
 logging.basicConfig(level=logging.INFO)
@@ -91,27 +88,28 @@ class Player(Thread):
 class Game(Thread):
     """Game or match filled with players."""
 
-    def __init__(self):
+    def __init__(self, config: dict):
         """Initialize game class."""
         super().__init__()
         self.info = models.ServerInfo(
-            name=config["SERVER"]["SERVER_NAME"],
-            version=config["SERVER"]["GAME_VERSION"],
-            width=config["SERVER"]["BOX_WIDTH"],
-            height=config["SERVER"]["BOX_HEIGHT"],
+            name=config["SERVER_NAME"],
+            version=config["GAME_VERSION"],
+            width=config["BOX_WIDTH"],
+            height=config["BOX_HEIGHT"],
         )
+        self.config = config
         self.starting_apples = 2
 
         self.players = []
         self.apples = []
         self.entities = []
-        self.tickrate = config["SERVER"]["BOX_TICKRATE"]
+        self.tickrate = config["TICKRATE"]
         self.terminate_flag = threading.Event()
 
     @property
     def full(self) -> bool:
         """Check if the game is full."""
-        return len(self.players) >= config["SERVER"]["MAX_PLAYERS"]
+        return len(self.players) >= self.config["MAX_PLAYERS"]
 
     def add_player(self, player: Player):
         """Add a player to the current game."""
@@ -167,9 +165,7 @@ class Game(Thread):
 
                 # check for collisions
                 if logic.has_collided_with_wall(
-                    config["SERVER"]["BOX_WIDTH"],
-                    config["SERVER"]["BOX_HEIGHT"],
-                    player.segments
+                    self.info.width - 1, self.info.height - 1, player.segments
                 ) or logic.has_collided_with_self(player.segments):
                     player.kill()
 
@@ -205,7 +201,7 @@ class Game(Thread):
 class Server(Thread):
     """Game server process."""
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 65444):
+    def __init__(self, config: dict, host: str = "127.0.0.1", port: int = 65444):
         """Set up the game server."""
         super().__init__()
         self.terminate_flag = threading.Event()
@@ -219,6 +215,7 @@ class Server(Thread):
         self.socket.settimeout(10)
         self.socket.listen()
 
+        self.game_config = config
         self.clients = []
         self.games = []
         self.next_player_id = 1
@@ -242,10 +239,14 @@ class Server(Thread):
                 game.add_player(client)
                 return
         # No game was found.
-        new_game = Game()
+        new_game = Game(self.game_config)
         self.games.append(new_game)
         new_game.add_player(client)
         new_game.start()
+
+    def stop(self):
+        """Stop the server."""
+        self.terminate_flag.set()
 
     def run(self):
         """Run the server and wait for connections."""
@@ -263,5 +264,6 @@ class Server(Thread):
             thread.join()
 
 
-server = Server()
-server.start()
+if __name__ == "__main__":
+    serv = Server()
+    serv.start()

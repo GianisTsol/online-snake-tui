@@ -4,11 +4,13 @@ import os
 
 from blessed import Terminal
 
+from server import Server
+
 from .game import OfflineGame, OnlineGame
 from .level import Window
 
 
-class PlayerData:
+class InputManager:
     """Data to pass to online mode."""
 
     def __init__(self):
@@ -21,6 +23,8 @@ class PlayerData:
             os.path.dirname(__file__), self.savefile
         )  # get the absolute path of our file
         self.nick_input = "Name (2-8 chars): "
+        self.host = ""
+        self.port = 0
         self.load_class()
 
     def load_class(self):
@@ -37,7 +41,7 @@ class PlayerData:
     def save_class(self):
         """Save variables for future load."""
         with open(self.savefile, "w") as f:
-            data = {"name": self.name}
+            data = {"name": self.name, "host": self.host, "port": self.port}
             json.dump(data, f)
 
     def get_user_input(self, text: str, old_val: str = "") -> str:
@@ -54,7 +58,9 @@ class PlayerData:
                 + self.term.red_bold
                 + text
                 + self.term.blue
+                + self.term.underline
                 + input
+                + self.term.normal
             )
             val = self.term.inkey()
             if val.name == "KEY_ENTER":
@@ -82,16 +88,45 @@ class PlayerData:
 
     def connect_to_game(self):
         """Prompt server details."""
-        host = self.get_user_input("Server ip: ")
-        try:
-            port = int(self.get_user_input("Port (65444): "))
-        except ValueError:
-            port = 65444
+        if not self.host:
+            self.host = self.get_user_input("Server ip: ")
+            try:
+                self.port = int(self.get_user_input("Port (65444): "))
+            except ValueError:
+                self.port = 65444
+            self.save_class()
+        OnlineGame(self.host, self.port, self.name)
 
-        OnlineGame(host, port, self.name)
+    def start_server(self):
+        """Input config params and start server."""
+        server_port = int(self.get_user_input("Port (65444): ", str(65444)))
+        server_y = self.get_user_input("Height: ", str(32))
+        server_x = self.get_user_input("Width: ", str(128))
+        tick = self.get_user_input("Tickrate: ", str(15))
+        max = self.get_user_input("Max Players: ", str(5))
+
+        print(end=self.term.home + self.term.clear)
+        print("Starting server...")
+        print("PRESS Q TO QUIT")
+        config = {
+            "BOX_WIDTH": server_x,
+            "BOX_HEIGHT": server_y,
+            "TICKRATE": tick,
+            "MAX_PLAYERS": max,
+        }
+        serv = Server(port=server_port, config=config)
+        serv.start()
+
+        while True:
+            val = self.term.inkey()
+            if val == "q":
+                print("Exiting...")
+                serv.stop()
+                serv.join()
+                break
 
 
-player = PlayerData()
+inmger = InputManager()
 
 
 class Menu:
@@ -99,9 +134,9 @@ class Menu:
 
     OPTIONS = [
         ["Start Offline", OfflineGame],
-        ["Connect to server", lambda: player.connect_to_game()],
-        ["Change Nickname", player.change_nickname],
-        ["Custom", OfflineGame],
+        ["Connect to server", lambda: inmger.connect_to_game()],
+        ["Change Nickname", inmger.change_nickname],
+        ["Server", inmger.start_server],
         ["Exit", exit],
     ]
 
