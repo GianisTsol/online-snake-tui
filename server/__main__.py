@@ -30,7 +30,7 @@ class Player(Thread):
         self.server = None
         self.player_model = model
         for _ in range(0, logic.STARTING_SNAKE_SEGMENTS):
-            logic.add_segment(self.segments, self.plaer_model.id)
+            logic.add_segment(self.segments, self.player_model.id)
         self.terminate_flag = threading.Event()
         self.conn = conn
         self.addr = addr  # Host, port.
