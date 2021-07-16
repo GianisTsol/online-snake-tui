@@ -95,6 +95,8 @@ def has_collided_with_others(
     player: list[SnakeSegment], other: list[SnakeSegment]
 ) -> bool:
     """Return True if the snake has collided with other players."""
+    if len(player) == 0:
+        return False
     head = player[0]
     for segment in other[1:]:
         if (head.x, head.y) == (segment.x, segment.y):

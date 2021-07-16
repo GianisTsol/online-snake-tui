@@ -182,8 +182,7 @@ class Game(Thread):
                         player.kill()
 
                 # add al players to entities, used for apple checks
-                for player in self.players:
-                    self.entities.extend(player.segments)
+                self.entities.extend(player.segments)
 
                 for apple in self.apples:  # check if player eats apple
                     if logic.check_apple(player.segments, apple):
