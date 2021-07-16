@@ -42,12 +42,6 @@ A snake game playable in the terminal. Includes offline mode, online mode (you c
    $ poe main
    ```
 
- - Run the server
-
-   ```shell
-   $ poe server
-   ```
-
  - Automatically order imports
 
    ```shell
