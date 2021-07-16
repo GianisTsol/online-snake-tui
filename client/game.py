@@ -211,7 +211,7 @@ class OnlineGame(Game):
                 print(
                     self.term.home
                     + self.term.move_xy(i["x"], i["y"])
-                    + self.window.player_color(i["player"])
+                    + self.window.player_color(i["player"]['id'])
                     + BLOCK_CHAR
                     + self.term.normal
                     + self.term.home
