@@ -28,9 +28,9 @@ class Player(Thread):
         self.segments = []
         self.game = None
         self.server = None
-        for _ in range(0, logic.STARTING_SNAKE_SEGMENTS):
-            logic.add_segment(self.segments, self.model.id)
         self.player_model = model
+        for _ in range(0, logic.STARTING_SNAKE_SEGMENTS):
+            logic.add_segment(self.segments, self.plaer_model.id)
         self.terminate_flag = threading.Event()
         self.conn = conn
         self.addr = addr  # Host, port.
