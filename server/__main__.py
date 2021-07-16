@@ -9,13 +9,9 @@ from typing import Any
 import msgpack
 
 from common import logic, models
+from common.config import SnekConfig
 
-SERVER_NAME = "SnekBox"
-GAME_VERSION = 0
-BOX_WIDTH = 128
-BOX_HEIGHT = 32
-BOX_TICKRATE = 15
-MAX_PLAYERS = 5
+config = SnekConfig()
 
 logger = logging.getLogger("snake.server")
 logging.basicConfig(level=logging.INFO)
@@ -99,23 +95,23 @@ class Game(Thread):
         """Initialize game class."""
         super().__init__()
         self.info = models.ServerInfo(
-            name=SERVER_NAME,
-            version=GAME_VERSION,
-            width=BOX_WIDTH,
-            height=BOX_HEIGHT,
+            name=config["SERVER"]["SERVER_NAME"],
+            version=config["SERVER"]["GAME_VERSION"],
+            width=config["SERVER"]["BOX_WIDTH"],
+            height=config["SERVER"]["BOX_HEIGHT"],
         )
         self.starting_apples = 2
 
         self.players = []
         self.apples = []
         self.entities = []
-        self.tickrate = BOX_TICKRATE
+        self.tickrate = config["SERVER"]["BOX_TICKRATE"]
         self.terminate_flag = threading.Event()
 
     @property
     def full(self) -> bool:
         """Check if the game is full."""
-        return len(self.players) >= MAX_PLAYERS
+        return len(self.players) >= config["SERVER"]["MAX_PLAYERS"]
 
     def add_player(self, player: Player):
         """Add a player to the current game."""
@@ -171,7 +167,9 @@ class Game(Thread):
 
                 # check for collisions
                 if logic.has_collided_with_wall(
-                    BOX_WIDTH, BOX_HEIGHT, player.segments
+                    config["SERVER"]["BOX_WIDTH"],
+                    config["SERVER"]["BOX_HEIGHT"],
+                    player.segments
                 ) or logic.has_collided_with_self(player.segments):
                     player.kill()
 
