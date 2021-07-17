@@ -257,7 +257,7 @@ class OnlineGame(Game):
             if sleep_time > 0:
                 time.sleep(sleep_time)
 
-            self.window.draw_border()
+            self.window.draw_border(name=self.con.serverinfo.name)
             # Get key presses and send them as change direction events
             with self.term.cbreak():
                 if key := self.term.inkey(timeout=0).name:

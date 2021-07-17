@@ -65,10 +65,13 @@ class Window:
                 max_len = len(i["dname"])
 
         max_len += 2
-        print(self.term.move_y(0))
         # Print the border header
         self._draw_border_row(
-            self.CHAR_ES, self.CHAR_EW, self.CHAR_SW, max_len, self.width + 1
+            self.term.move_y(1) + self.CHAR_ES,
+            self.CHAR_EW,
+            self.CHAR_SW,
+            max_len,
+            self.width + 1,
         )
 
         # Print border sides
@@ -97,9 +100,14 @@ class Window:
                 + player["dname"]
             )
 
-    def draw_border(self):
+    def draw_border(self, name: str = "SNAKE"):
         """Draw the border around the edge of the screen."""
         print(self.term.home + self.term.clear, end="")  # Clear the screen
+
+        print(
+            self.term.move_xy(self.width // 2, 0),
+            self.term.bold + self.term.blue + name + self.term.normal,
+        )
 
         # Print the border header
         self._draw_border_row(
